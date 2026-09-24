@@ -1,14 +1,14 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Go-Interactive (Global Cloud Streaming)</title>
-    <!-- Tailwind CSS v3 Play CDN -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Firebase SDK v9 (Compat) -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
@@ -22,7 +22,7 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between">
 
-    <!-- Top Navigation Bar -->
+    <!-- Navbar -->
     <nav class="glass-panel sticky top-0 z-50 px-6 py-4 flex flex-wrap justify-between items-center shadow-lg">
         <div class="flex items-center space-x-3">
             <i class="fa-solid fa-compact-disc text-cyan-400 text-3xl animate-spin" style="animation-duration: 8s;"></i>
@@ -39,13 +39,13 @@
         </div>
 
         <div class="flex items-center space-x-4">
-            <button onclick="openAdminModal()" class="px-4 py-2 bg-cyan-600/20 hover:bg-cyan-600/40 border border-cyan-500/50 text-cyan-300 rounded-lg text-sm font-semibold transition">
+            <button onclick="toggleAdminModal()" class="px-4 py-2 bg-cyan-600/20 hover:bg-cyan-600/40 border border-cyan-500/50 text-cyan-300 rounded-lg text-sm font-semibold transition">
                 <i class="fa-solid fa-user-shield mr-2"></i>Admin Panel
             </button>
         </div>
     </nav>
 
-    <!-- Main Container -->
+    <!-- Main Content -->
     <main class="container mx-auto px-4 py-6 flex-grow">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
@@ -56,7 +56,8 @@
                 </h2>
                 
                 <div id="songsList" class="space-y-3">
-                    <!-- Dynamic Songs Will Be Rendered Here -->
+                    <!-- Dynamic Firebase Songs Render Here -->
+                    <p id="loadingMsg" class="text-gray-500 italic">Loading playlist...</p>
                 </div>
             </section>
 
@@ -64,7 +65,8 @@
             <section class="glass-panel p-6 rounded-2xl flex flex-col justify-between h-fit sticky top-24">
                 <div class="text-center space-y-4">
                     <div id="posterContainer" class="w-48 h-48 mx-auto rounded-xl overflow-hidden border-2 border-cyan-500/40 shadow-lg shadow-cyan-500/10 flex items-center justify-center bg-gray-900">
-                        <i class="fa-solid fa-music text-5xl text-gray-700"></i>
+                        <i id="defaultPoster" class="fa-solid fa-music text-5xl text-gray-700"></i>
+                        <img id="currentPoster" class="w-full h-full object-cover hidden" src="" alt="Poster">
                     </div>
                     <div>
                         <h3 id="currentTitle" class="text-lg font-bold text-white truncate">Select a Song</h3>
@@ -72,20 +74,19 @@
                     </div>
                 </div>
 
-                <!-- Custom Audio Controls -->
-                <audio id="audioPlayer" class="hidden"></audio>
+                <audio id="audioPlayer"></audio>
 
                 <div class="mt-6 space-y-4">
                     <div class="flex items-center justify-between text-xs text-cyan-300 font-mono">
                         <span id="currentTime">0:00</span>
                         <span id="duration">0:00</span>
                     </div>
-                    <input type="range" id="progressBar" value="0" class="w-full accent-cyan-400 cursor-pointer">
+                    <input type="range" id="progressBar" value="0" min="0" max="100" class="w-full accent-cyan-400 cursor-pointer">
 
                     <div class="flex justify-center items-center gap-6">
                         <button onclick="prevSong()" class="text-cyan-400 hover:text-white text-xl"><i class="fa-solid fa-backward-step"></i></button>
                         <button onclick="togglePlay()" id="playBtn" class="w-12 h-12 bg-cyan-500 hover:bg-cyan-400 text-black rounded-full flex items-center justify-center text-xl shadow-lg shadow-cyan-500/30 transition">
-                            <i class="fa-solid fa-play"></i>
+                            <i class="fa-solid fa-play" id="playIcon"></i>
                         </button>
                         <button onclick="nextSong()" class="text-cyan-400 hover:text-white text-xl"><i class="fa-solid fa-forward-step"></i></button>
                     </div>
@@ -95,23 +96,166 @@
         </div>
     </main>
 
-    <!-- JS Logic for Search Filter -->
+    <!-- Admin Panel Modal -->
+    <div id="adminModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="glass-panel w-full max-w-md p-6 rounded-2xl border border-cyan-500/30 relative">
+            <button onclick="toggleAdminModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <h3 class="text-xl font-bold text-cyan-400 mb-4 font-orbitron">Admin Sign In</h3>
+            <div id="adminAuthSection" class="space-y-4">
+                <input type="password" id="adminPassInput" placeholder="Enter Admin Password" class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg p-3 text-sm focus:outline-none focus:border-cyan-400">
+                <button onclick="checkAdminPass()" class="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-bold py-2 rounded-lg transition">Login</button>
+            </div>
+            <div id="adminUploadSection" class="hidden space-y-4 mt-4">
+                <p class="text-green-400 text-sm">Authenticated!</p>
+                <input type="text" id="songTitle" placeholder="Song Title" class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg p-2 text-sm">
+                <input type="text" id="songArtist" placeholder="Artist / Movie" class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg p-2 text-sm">
+                <label class="block text-xs text-gray-400">MP3 Audio File:</label>
+                <input type="file" id="audioFileInput" accept="audio/*" class="w-full text-xs text-gray-400">
+                <label class="block text-xs text-gray-400">Poster Image (Optional):</label>
+                <input type="file" id="posterFileInput" accept="image/*" class="w-full text-xs text-gray-400">
+                <button onclick="uploadSong()" id="uploadBtn" class="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-bold py-2 rounded-lg transition">Upload Song</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
     <script>
+        // 1. Firebase Config (YOUR PREVIOUS FIREBASE CONFIG)
+        const firebaseConfig = {
+            databaseURL: "https://your-firebase-db-default-rtdb.firebaseio.com/" // 👈 ఇక్కడ మీ పాత Firebase URL వేసుకోండి
+        };
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+
+        // Cloudinary Config
+        const CLOUD_NAME = "YOUR_CLOUD_NAME"; // 👈 ఇక్కడ మీ పాత Cloud Name వేసుకోండి
+        const UPLOAD_PRESET = "ml_default";
+
+        let playlist = [];
+        let currentIndex = -1;
+        const audio = document.getElementById('audioPlayer');
+
+        // Fetch Songs from Firebase
+        db.ref('songs').on('value', (snapshot) => {
+            const data = snapshot.val();
+            playlist = [];
+            const songsListContainer = document.getElementById('songsList');
+            songsListContainer.innerHTML = '';
+
+            if (data) {
+                Object.keys(data).forEach((key, index) => {
+                    const song = data[key];
+                    song.id = key;
+                    playlist.push(song);
+
+                    const card = document.createElement('div');
+                    card.className = "song-item glass-panel p-4 rounded-xl flex items-center justify-between cursor-pointer hover:border-cyan-400 transition";
+                    card.onclick = () => playSong(index);
+                    card.innerHTML = `
+                        <div class="flex items-center space-x-3 truncate">
+                            <i class="fa-solid fa-play text-cyan-400 text-sm"></i>
+                            <div class="truncate">
+                                <h4 class="song-title font-semibold text-white truncate">${song.title}</h4>
+                                <p class="song-artist text-xs text-gray-400 truncate">${song.artist || 'Unknown'}</p>
+                            </div>
+                        </div>
+                        <span class="text-xs text-cyan-500/70 font-mono">MP3</span>
+                    `;
+                    songsListContainer.appendChild(card);
+                });
+            } else {
+                songsListContainer.innerHTML = '<p class="text-gray-500">No songs found in Firebase.</p>';
+            }
+        });
+
+        // Player Controls
+        function playSong(index) {
+            if (index < 0 || index >= playlist.length) return;
+            currentIndex = index;
+            const song = playlist[index];
+            audio.src = song.url;
+            document.getElementById('currentTitle').innerText = song.title;
+            document.getElementById('currentArtist').innerText = song.artist || 'Unknown';
+            
+            if (song.poster) {
+                document.getElementById('currentPoster').src = song.poster;
+                document.getElementById('currentPoster').classList.remove('hidden');
+                document.getElementById('defaultPoster').classList.add('hidden');
+            } else {
+                document.getElementById('currentPoster').classList.add('hidden');
+                document.getElementById('defaultPoster').classList.remove('hidden');
+            }
+
+            audio.play();
+            document.getElementById('playIcon').className = "fa-solid fa-pause";
+        }
+
+        function togglePlay() {
+            if (!audio.src) return;
+            if (audio.paused) {
+                audio.play();
+                document.getElementById('playIcon').className = "fa-solid fa-pause";
+            } else {
+                audio.pause();
+                document.getElementById('playIcon').className = "fa-solid fa-play";
+            }
+        }
+
+        function prevSong() { playSong(currentIndex - 1); }
+        function nextSong() { playSong(currentIndex + 1); }
+
+        audio.ontimeupdate = () => {
+            if (audio.duration) {
+                const prog = (audio.currentTime / audio.duration) * 100;
+                document.getElementById('progressBar').value = prog;
+                document.getElementById('currentTime').innerText = formatTime(audio.currentTime);
+                document.getElementById('duration').innerText = formatTime(audio.duration);
+            }
+        };
+
+        document.getElementById('progressBar').oninput = (e) => {
+            if (audio.duration) {
+                audio.currentTime = (e.target.value / 100) * audio.duration;
+            }
+        };
+
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60);
+            const s = Math.floor(sec % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
         // Real-Time Search Filter Functionality
         function filterSongs() {
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
-            const songElements = document.querySelectorAll('#songsList > div');
+            const songCards = document.querySelectorAll('.song-item');
 
-            songElements.forEach(songCard => {
-                const titleText = songCard.querySelector('.song-title')?.textContent.toLowerCase() || '';
-                const artistText = songCard.querySelector('.song-artist')?.textContent.toLowerCase() || '';
-
-                if (titleText.includes(query) || artistText.includes(query)) {
-                    songCard.style.display = "flex";
+            songCards.forEach(card => {
+                const title = card.querySelector('.song-title')?.textContent.toLowerCase() || '';
+                const artist = card.querySelector('.song-artist')?.textContent.toLowerCase() || '';
+                if (title.includes(query) || artist.includes(query)) {
+                    card.style.display = "flex";
                 } else {
-                    songCard.style.display = "none";
+                    card.style.display = "none";
                 }
             });
+        }
+
+        // Admin Modal
+        function toggleAdminModal() {
+            document.getElementById('adminModal').classList.toggle('hidden');
+        }
+
+        function checkAdminPass() {
+            const pass = document.getElementById('adminPassInput').value;
+            if (pass === "1234") { // Your Admin Password
+                document.getElementById('adminAuthSection').classList.add('hidden');
+                document.getElementById('adminUploadSection').classList.remove('hidden');
+            } else {
+                alert("Wrong Password!");
+            }
         }
     </script>
 </body>
