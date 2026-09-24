@@ -1,4 +1,4 @@
-```html
+ ```html
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -120,7 +120,7 @@
             <button onclick="closeAdminModals()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             <div class="text-center mb-6">
                 <div class="w-16 h-16 bg-neonmagenta/10 rounded-full flex items-center justify-center mx-auto mb-3 text-neonmagenta text-2xl neon-border-magenta">
-                    <i class="fa-solid fa-user-shield"></i>
+                    <i class="fa-solid fa-user-gear"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-white">One-Time Admin Setup</h2>
                 <p class="text-sm text-gray-400 mt-1">Create your master admin credentials.</p>
@@ -184,7 +184,7 @@
             </div>
         </div>
 
-        <!-- Both User Login & Admin Login/Setup Options Clearly Visible -->
+        <!-- User Login & Admin Login Options -->
         <div class="flex items-center space-x-2">
             <button onclick="openUserLogin()" class="px-3 py-2 rounded-xl bg-white/5 border border-neoncyan/30 text-neoncyan font-semibold text-xs md:text-sm hover:bg-neoncyan/10 transition shadow-glow-cyan flex items-center space-x-1.5">
                 <i class="fa-solid fa-user"></i>
@@ -242,7 +242,7 @@
                 <i class="fa-solid fa-right-from-bracket"></i>
                 <span>Logout Session</span>
             </button>
-            <p class="text-[10px] text-gray-500 text-center mt-3">Goturu Interactive v2.6</p>
+            <p class="text-[10px] text-gray-500 text-center mt-3">Goturu Interactive v2.7</p>
         </div>
     </aside>
 
@@ -563,13 +563,16 @@
         });
 
         async function checkAdminSetupStatus() {
-            let adminExists = localStorage.getItem('go_interactive_admin_set');
+            let adminExists = localStorage.getItem('go_interactive_admin_set') === 'true';
             if (db) {
                 try {
                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'admin_config');
                     const docSnap = await getDoc(docRef);
                     if (docSnap.exists()) {
-                        adminExists = 'true';
+                        adminExists = true;
+                        localStorage.setItem('go_interactive_admin_set', 'true');
+                        if (docSnap.data().username) localStorage.setItem('go_interactive_admin_user', docSnap.data().username);
+                        if (docSnap.data().password) localStorage.setItem('go_interactive_admin_pass', docSnap.data().password);
                     }
                 } catch(e) { console.error(e); }
             }
@@ -616,8 +619,11 @@
             }
 
             closeAdminModals();
-            document.getElementById('admin-setup-trigger').classList.add('hidden');
-            showToast('Admin Profile Created!', 'success');
+            const setupTrigger = document.getElementById('admin-setup-trigger');
+            setupTrigger.classList.add('hidden');
+            setupTrigger.classList.remove('flex');
+            document.getElementById('admin-setup-form').reset();
+            showToast('Admin Profile Created Successfully!', 'success');
         });
 
         document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
@@ -625,8 +631,26 @@
             const user = document.getElementById('login-admin-user').value.trim();
             const pass = document.getElementById('login-admin-pass').value.trim();
 
-            let storedUser = localStorage.getItem('go_interactive_admin_user') || 'admin';
-            let storedPass = localStorage.getItem('go_interactive_admin_pass') || 'admin123';
+            let storedUser = localStorage.getItem('go_interactive_admin_user');
+            let storedPass = localStorage.getItem('go_interactive_admin_pass');
+            let adminSet = localStorage.getItem('go_interactive_admin_set') === 'true';
+
+            if (db) {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'admin_config');
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        storedUser = docSnap.data().username;
+                        storedPass = docSnap.data().password;
+                        adminSet = true;
+                    }
+                } catch(err) { console.error(err); }
+            }
+
+            if (!adminSet) {
+                storedUser = storedUser || 'admin';
+                storedPass = storedPass || 'admin123';
+            }
 
             if (user === storedUser && pass === storedPass) {
                 closeAdminModals();
@@ -634,6 +658,7 @@
                 document.getElementById('sidebar-admin-link').classList.remove('hidden');
                 switchView('admin-dashboard');
                 loadAdminData();
+                document.getElementById('admin-login-form').reset();
             } else {
                 showToast('Access Denied: Invalid Credentials', 'error');
             }
@@ -797,7 +822,6 @@
             });
         };
 
-        // Fixed playSong function using song ID lookup for reliable playback across search filters
         window.playSong = (songId) => {
             if (!currentUser) {
                 document.getElementById('user-login-modal').classList.remove('hidden');
