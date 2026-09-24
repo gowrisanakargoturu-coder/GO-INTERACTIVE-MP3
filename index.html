@@ -1,11 +1,11 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Go-Interactive (Goturu Interactive)</title>
-    <!-- Tailwind CSS & FontAwesome for Neon Styling -->
-    <script src="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"></script>
+    <!-- Tailwind CSS v3 Play CDN for Full Support of Opacity & Backdrop Blur -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Inter:wght@300;400;600&display=swap');
@@ -19,7 +19,6 @@
         h1, h2, h3, .font-orbitron {
             font-family: 'Orbitron', sans-serif;
         }
-        /* Neon Glow Effects */
         .neon-glow-cyan {
             box-shadow: 0 0 15px rgba(6, 182, 212, 0.5), inset 0 0 10px rgba(6, 182, 212, 0.3);
         }
@@ -32,16 +31,11 @@
         .neon-text-cyan {
             text-shadow: 0 0 10px rgba(6, 182, 212, 0.7);
         }
-        .neon-text-green {
-            text-shadow: 0 0 10px rgba(34, 197, 94, 0.7);
-        }
-        /* Glassmorphism */
         .glass-panel {
             background: rgba(18, 18, 26, 0.85);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        /* Custom Scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -120,7 +114,7 @@
                 </form>
             </div>
 
-            <div id="admin-login-view">
+            <div id="admin-login-view" class="hidden">
                 <div class="text-center mb-6">
                     <h2 class="font-orbitron text-xl font-bold text-pink-400">Admin Sign In</h2>
                     <p class="text-xs text-gray-400 mt-1">Enter master credentials to manage songs and visitor logs.</p>
@@ -244,7 +238,7 @@
                 </div>
             </div>
 
-            <!-- Add Song Form (Permanent Base64 Storage Upload) -->
+            <!-- Add Song Form -->
             <div class="bg-black/40 p-6 rounded-xl border border-white/10 mb-8">
                 <h3 class="font-orbitron font-bold text-sm text-white mb-4 flex items-center">
                     <i class="fa-solid fa-circle-plus text-cyan-400 mr-2"></i> Upload Track (Permanent Save)
@@ -376,13 +370,24 @@
             updateAnalytics();
 
             if (!currentUser) {
-                const modal = document.getElementById('user-login-modal');
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
+                openUserLoginModal();
             } else {
                 updateUserInterface();
             }
         };
+
+        function openUserLoginModal() {
+            closeAdminModal();
+            const modal = document.getElementById('user-login-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeUserLoginModal() {
+            const modal = document.getElementById('user-login-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
 
         function handleUserLogin(e) {
             e.preventDefault();
@@ -395,10 +400,7 @@
             visitorLogs.unshift({ name: currentUser, time: new Date().toLocaleString() });
             localStorage.setItem('go_interactive_visitors', JSON.stringify(visitorLogs));
 
-            const modal = document.getElementById('user-login-modal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            
+            closeUserLoginModal();
             updateUserInterface();
             updateAnalytics();
         }
@@ -411,9 +413,7 @@
         function openUserLogin() {
             document.getElementById('sidebar').classList.remove('translate-x-0');
             document.getElementById('sidebar').classList.add('-translate-x-full');
-            const modal = document.getElementById('user-login-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            openUserLoginModal();
         }
 
         function logoutUser() {
@@ -448,6 +448,7 @@
         }
 
         function openAdminModal(mode) {
+            closeUserLoginModal();
             const modal = document.getElementById('admin-modal');
             const setupView = document.getElementById('admin-setup-view');
             const loginView = document.getElementById('admin-login-view');
@@ -508,7 +509,6 @@
             isAdminLoggedIn = false;
         }
 
-        // Helper to convert uploaded files to permanent Base64 Data URLs
         function readFileAsDataURL(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -518,7 +518,6 @@
             });
         }
 
-        // Permanent Add Song with FileReader Base64 Storage
         async function handleAddSong(e) {
             e.preventDefault();
             if(!currentUser) {
@@ -623,9 +622,7 @@
 
         function playSong(id) {
             if(!currentUser) {
-                const modal = document.getElementById('user-login-modal');
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
+                openUserLoginModal();
                 return;
             }
             const song = songs.find(s => s.id === id);
@@ -647,9 +644,7 @@
 
         function togglePlayPause() {
             if(!currentUser) {
-                const modal = document.getElementById('user-login-modal');
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
+                openUserLoginModal();
                 return;
             }
             if(!audioElement.src) {
@@ -729,4 +724,3 @@
     </script>
 </body>
 </html>
-          
