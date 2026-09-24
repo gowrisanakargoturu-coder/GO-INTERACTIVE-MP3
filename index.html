@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -382,7 +382,7 @@
             }
         };
 
-        // Real-time listener or fetch from Firebase
+        // Real-time listener from Firebase
         function fetchDataFromFirebase() {
             // Fetch Songs
             db.collection("songs").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
@@ -436,7 +436,6 @@
                 timeMillis: Date.now()
             };
 
-            // Save visitor to Firebase
             try {
                 await db.collection("visitors").add(logData);
             } catch(err) {
@@ -550,10 +549,11 @@
             isAdminLoggedIn = false;
         }
 
+        // Fixed Cloudinary Upload Function with preset 'ml_default'
         async function uploadToCloudinary(file, resourceType = 'auto') {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('upload_preset', 'Un signed upload');
+            formData.append('upload_preset', 'ml_default'); 
             
             const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
                 method: 'POST',
@@ -588,6 +588,7 @@
             uploadBtn.disabled = true;
 
             try {
+                // Uploading to Cloudinary first
                 const audioUrl = await uploadToCloudinary(audioFile, 'video');
                 const imgUrl = await uploadToCloudinary(imgFile, 'image');
 
@@ -601,14 +602,14 @@
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
-                // Save to Firebase Firestore so everyone sees it instantly
+                // Saving to Firebase Firestore so it syncs globally
                 await db.collection("songs").add(newSong);
 
                 document.getElementById('add-song-form').reset();
                 alert('Track published to Cloud & Firebase successfully!');
             } catch (err) {
                 console.error(err);
-                alert('Error uploading track. Please check network/preset settings.');
+                alert('Error uploading track: ' + err.message);
             } finally {
                 uploadBtn.innerText = 'UPLOAD TO CLOUDINARY & FIREBASE';
                 uploadBtn.disabled = false;
@@ -801,4 +802,3 @@
     </script>
 </body>
 </html>
-   
