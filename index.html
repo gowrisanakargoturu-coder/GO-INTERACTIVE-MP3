@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -71,7 +71,7 @@
     </div>
 
     <!-- User Login Modal (Mandatory) -->
-    <div id="user-login-modal" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div id="user-login-modal" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
         <div class="glass-panel p-8 rounded-2xl w-full max-w-md neon-glow-cyan relative">
             <div class="text-center mb-6">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-cyan-500/10 border border-cyan-400 flex items-center justify-center neon-glow-cyan text-cyan-400 text-2xl">
@@ -94,7 +94,7 @@
     </div>
 
     <!-- Admin Setup / Login Modal -->
-    <div id="admin-modal" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div id="admin-modal" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
         <div class="glass-panel p-8 rounded-2xl w-full max-w-md neon-glow-magenta relative">
             <button onclick="closeAdminModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             
@@ -376,7 +376,9 @@
             updateAnalytics();
 
             if (!currentUser) {
-                document.getElementById('user-login-modal').classList.remove('hidden');
+                const modal = document.getElementById('user-login-modal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
             } else {
                 updateUserInterface();
             }
@@ -393,7 +395,10 @@
             visitorLogs.unshift({ name: currentUser, time: new Date().toLocaleString() });
             localStorage.setItem('go_interactive_visitors', JSON.stringify(visitorLogs));
 
-            document.getElementById('user-login-modal').classList.add('hidden');
+            const modal = document.getElementById('user-login-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            
             updateUserInterface();
             updateAnalytics();
         }
@@ -406,7 +411,9 @@
         function openUserLogin() {
             document.getElementById('sidebar').classList.remove('translate-x-0');
             document.getElementById('sidebar').classList.add('-translate-x-full');
-            document.getElementById('user-login-modal').classList.remove('hidden');
+            const modal = document.getElementById('user-login-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
 
         function logoutUser() {
@@ -446,6 +453,8 @@
             const loginView = document.getElementById('admin-login-view');
             
             modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
             if(mode === 'setup') {
                 setupView.classList.remove('hidden');
                 loginView.classList.add('hidden');
@@ -456,7 +465,9 @@
         }
 
         function closeAdminModal() {
-            document.getElementById('admin-modal').classList.add('hidden');
+            const modal = document.getElementById('admin-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
         }
 
         function handleAdminSetup(e) {
@@ -612,7 +623,9 @@
 
         function playSong(id) {
             if(!currentUser) {
-                document.getElementById('user-login-modal').classList.remove('hidden');
+                const modal = document.getElementById('user-login-modal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
                 return;
             }
             const song = songs.find(s => s.id === id);
@@ -634,7 +647,9 @@
 
         function togglePlayPause() {
             if(!currentUser) {
-                document.getElementById('user-login-modal').classList.remove('hidden');
+                const modal = document.getElementById('user-login-modal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
                 return;
             }
             if(!audioElement.src) {
@@ -714,3 +729,4 @@
     </script>
 </body>
 </html>
+          
