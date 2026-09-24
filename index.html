@@ -1,4 +1,4 @@
- ```html
+```html
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -242,7 +242,7 @@
                 <i class="fa-solid fa-right-from-bracket"></i>
                 <span>Logout Session</span>
             </button>
-            <p class="text-[10px] text-gray-500 text-center mt-3">Goturu Interactive v2.7</p>
+            <p class="text-[10px] text-gray-500 text-center mt-3">Goturu Interactive v2.8</p>
         </div>
     </aside>
 
@@ -562,23 +562,10 @@
             }
         });
 
-        async function checkAdminSetupStatus() {
-            let adminExists = localStorage.getItem('go_interactive_admin_set') === 'true';
-            if (db) {
-                try {
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'admin_config');
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        adminExists = true;
-                        localStorage.setItem('go_interactive_admin_set', 'true');
-                        if (docSnap.data().username) localStorage.setItem('go_interactive_admin_user', docSnap.data().username);
-                        if (docSnap.data().password) localStorage.setItem('go_interactive_admin_pass', docSnap.data().password);
-                    }
-                } catch(e) { console.error(e); }
-            }
-
+        function checkAdminSetupStatus() {
+            const adminSet = localStorage.getItem('go_interactive_admin_set') === 'true';
             const setupTrigger = document.getElementById('admin-setup-trigger');
-            if (!adminExists) {
+            if (!adminSet) {
                 setupTrigger.classList.remove('hidden');
                 setupTrigger.classList.add('flex');
             } else {
@@ -600,56 +587,47 @@
             document.getElementById('admin-login-modal').classList.add('hidden');
         };
 
-        document.getElementById('admin-setup-form').addEventListener('submit', async (e) => {
+        // Instant & robust local-first admin setup handler
+        document.getElementById('admin-setup-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const user = document.getElementById('setup-admin-user').value.trim();
             const pass = document.getElementById('setup-admin-pass').value.trim();
 
+            if (!user || !pass) {
+                showToast('Please enter both username and password!', 'error');
+                return;
+            }
+
             localStorage.setItem('go_interactive_admin_user', user);
             localStorage.setItem('go_interactive_admin_pass', pass);
             localStorage.setItem('go_interactive_admin_set', 'true');
-
-            if (db) {
-                try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'admin_config'), {
-                        username: user,
-                        password: pass
-                    });
-                } catch(err) { console.error(err); }
-            }
 
             closeAdminModals();
             const setupTrigger = document.getElementById('admin-setup-trigger');
             setupTrigger.classList.add('hidden');
             setupTrigger.classList.remove('flex');
             document.getElementById('admin-setup-form').reset();
-            showToast('Admin Profile Created Successfully!', 'success');
+            showToast('Admin Profile Created Successfully! You can now login.', 'success');
         });
 
-        document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+        // Instant & robust admin login handler
+        document.getElementById('admin-login-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const user = document.getElementById('login-admin-user').value.trim();
             const pass = document.getElementById('login-admin-pass').value.trim();
 
-            let storedUser = localStorage.getItem('go_interactive_admin_user');
-            let storedPass = localStorage.getItem('go_interactive_admin_pass');
-            let adminSet = localStorage.getItem('go_interactive_admin_set') === 'true';
+            const storedUser = localStorage.getItem('go_interactive_admin_user') || 'admin';
+            const storedPass = localStorage.getItem('go_interactive_admin_pass') || 'admin123';
+            const adminSet = localStorage.getItem('go_interactive_admin_set') === 'true';
 
-            if (db) {
-                try {
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'admin_config');
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        storedUser = docSnap.data().username;
-                        storedPass = docSnap.data().password;
-                        adminSet = true;
-                    }
-                } catch(err) { console.error(err); }
-            }
-
-            if (!adminSet) {
-                storedUser = storedUser || 'admin';
-                storedPass = storedPass || 'admin123';
+            if (!adminSet && user === 'admin' && pass === 'admin123') {
+                closeAdminModals();
+                showToast('Default Admin Access Granted!', 'success');
+                document.getElementById('sidebar-admin-link').classList.remove('hidden');
+                switchView('admin-dashboard');
+                loadAdminData();
+                document.getElementById('admin-login-form').reset();
+                return;
             }
 
             if (user === storedUser && pass === storedPass) {
@@ -1007,4 +985,4 @@
     </script>
 </body>
 </html>
-```
+``` 
