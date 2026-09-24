@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -272,6 +272,23 @@
                 </form>
             </div>
 
+            <!-- Manage Uploaded Tracks (Admin Only) -->
+            <div class="mb-8">
+                <h3 class="font-orbitron font-bold text-sm text-white mb-4">Manage Uploaded Tracks</h3>
+                <div class="overflow-x-auto max-h-60 rounded-xl border border-white/10">
+                    <table class="w-full text-left text-xs text-gray-300">
+                        <thead class="bg-[#12121a] text-pink-400 uppercase font-orbitron">
+                            <tr>
+                                <th class="p-3">Title</th>
+                                <th class="p-3">Artist</th>
+                                <th class="p-3 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-songs-tbody" class="divide-y divide-white/5"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Visitor Logs Table -->
             <div>
                 <h3 class="font-orbitron font-bold text-sm text-white mb-4">Logged Visitors Audit Trail</h3>
@@ -387,6 +404,7 @@
             renderAdminButtonState();
             renderSongs();
             updateAnalytics();
+            renderAdminSongs();
 
             if (!currentUser) {
                 openUserLoginModal();
@@ -517,6 +535,7 @@
                 closeAdminModal();
                 document.getElementById('admin-dashboard').classList.remove('hidden');
                 updateAnalytics();
+                renderAdminSongs();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
                 alert('Access Denied: Invalid Credentials');
@@ -561,6 +580,7 @@
                 localStorage.setItem('go_interactive_songs', JSON.stringify(songs));
                 renderSongs();
                 updateAnalytics();
+                renderAdminSongs();
                 document.getElementById('add-song-form').reset();
                 alert('Track published successfully!');
             } catch (err) {
@@ -574,6 +594,7 @@
                 localStorage.setItem('go_interactive_songs', JSON.stringify(songs));
                 renderSongs();
                 updateAnalytics();
+                renderAdminSongs();
             }
         }
 
@@ -610,9 +631,31 @@
                             <a href="${song.url}" download="${song.title}.mp3" onclick="incrementDownload('${song.id}')" class="px-3 py-2.5 rounded-xl bg-green-500/10 border border-green-400/30 text-green-400 text-xs font-semibold hover:bg-green-500/20 transition">
                                 <i class="fa-solid fa-download"></i>
                             </a>
-                            ${isAdminLoggedIn ? `<button onclick="deleteSong('${song.id}')" class="px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold hover:bg-red-500/20 transition"><i class="fa-solid fa-trash"></i></button>` : ''}
                         </div>
                     </div>
+                `;
+            });
+        }
+
+        function renderAdminSongs() {
+            const tbody = document.getElementById('admin-songs-tbody');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            if(songs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="p-3 text-center text-gray-500">No tracks found</td></tr>`;
+                return;
+            }
+            songs.forEach(song => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-white/5">
+                        <td class="p-3 font-semibold text-white">${song.title}</td>
+                        <td class="p-3 text-gray-400">${song.artist}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="deleteSong('${song.id}')" class="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition">
+                                <i class="fa-solid fa-trash mr-1"></i> Delete
+                            </button>
+                        </td>
+                    </tr>
                 `;
             });
         }
@@ -714,16 +757,20 @@
             document.getElementById('stat-songs').innerText = songs.length;
 
             const tbody = document.getElementById('visitor-logs-tbody');
-            tbody.innerHTML = '';
-            visitorLogs.forEach(log => {
-                tbody.innerHTML += `
-                    <tr class="hover:bg-white/5">
-                        <td class="p-3 font-semibold text-cyan-400">${log.name}</td>
-                        <td class="p-3 text-gray-400">${log.time}</td>
-                    </tr>
-                `;
-            });
+            if(tbody) {
+                tbody.innerHTML = '';
+                visitorLogs.forEach(log => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-white/5">
+                            <td class="p-3 font-semibold text-cyan-400">${log.name}</td>
+                            <td class="p-3 text-gray-400">${log.time}</td>
+                        </tr>
+                    `;
+                });
+            }
+            renderAdminSongs();
         }
     </script>
 </body>
 </html>
+ 
