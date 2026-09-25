@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -64,7 +64,7 @@
         </div>
     </div>
 
-    <!-- Admin Login Modal (Setup View Removed) -->
+    <!-- Admin Login Modal -->
     <div id="admin-modal" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
         <div class="glass-panel p-8 rounded-2xl w-full max-w-md neon-glow-magenta relative">
             <button onclick="closeAdminModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -227,7 +227,7 @@
                 </form>
             </div>
 
-            <!-- Manage Uploaded Tracks (Admin Only) -->
+            <!-- Manage Uploaded Tracks -->
             <div class="mb-8">
                 <h3 class="font-orbitron font-bold text-sm text-white mb-4">Manage Cloud Tracks</h3>
                 <div class="overflow-x-auto max-h-60 rounded-xl border border-white/10">
@@ -307,17 +307,15 @@
     </footer>
 
     <!-- Audio Element -->
-    <audio id="audio-element" ontimeupdate="updateProgress()" onended="nextSong()"></audio>
+    <audio id="audio-element" crossorigin="anonymous" ontimeupdate="updateProgress()" onended="nextSong()"></audio>
 
-    <!-- App Logic with Realtime Database Sync -->
+    <!-- Fixed App Logic -->
     <script>
-        // Updated with Realtime Database Config
         const firebaseConfig = {
             projectId: "go-interactive-mp3",
             databaseURL: "https://go-interactive-mp3-default-rtdb.firebaseio.com"
         };
 
-        // Initialize Firebase
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
@@ -334,17 +332,22 @@
         let isPlaying = false;
         const audioElement = document.getElementById('audio-element');
 
-        window.onload = async function() {
-            setTimeout(() => {
-                const loadingScreen = document.getElementById('loading-screen');
-                if(loadingScreen) {
-                    loadingScreen.style.opacity = '0';
-                    setTimeout(() => loadingScreen.style.display = 'none', 700);
-                }
-            }, 600);
+        function hideLoadingScreen() {
+            const loadingScreen = document.getElementById('loading-screen');
+            if(loadingScreen && loadingScreen.style.display !== 'none') {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => loadingScreen.style.display = 'none', 500);
+            }
+        }
 
+        window.onload = function() {
             renderAdminButtonState();
             
+            // Force Hide Loading Overlay Max Timeout (Safe Fallback for Mobile)
+            setTimeout(() => {
+                hideLoadingScreen();
+            }, 2500);
+
             // Fetch live data from Firebase Realtime Database
             fetchDataFromFirebase();
 
@@ -355,9 +358,8 @@
             }
         };
 
-        // Real-time listener from Realtime Database
         function fetchDataFromFirebase() {
-            // Fetch Songs
+            // Fetch Songs with Fail-safe
             rtdb.ref("songs").on("value", (snapshot) => {
                 songs = [];
                 const data = snapshot.val();
@@ -370,8 +372,10 @@
                 renderSongs();
                 renderAdminSongs();
                 updateAnalytics();
+                hideLoadingScreen(); // Hide spinner when data arrives
             }, (error) => {
                 console.error("Error getting songs: ", error);
+                hideLoadingScreen(); // Hide spinner even if error occurs
             });
 
             // Fetch Visitors
@@ -508,7 +512,6 @@
             const formData = new FormData();
             formData.append('file', file);
             
-            // Try preset name or fallback dynamically for unsigned uploads
             const presetName = localStorage.getItem('cloudinary_preset') || 'ml_default';
             formData.append('upload_preset', presetName); 
             
@@ -520,7 +523,6 @@
             if(data.secure_url) {
                 return data.secure_url;
             } else {
-                // Friendly error prompt if preset fails
                 if (data.error?.message?.includes('preset')) {
                     const newPreset = prompt("Cloudinary Preset error. Please enter your Unsigned Upload Preset Name from Cloudinary:", "my_preset");
                     if (newPreset) {
@@ -566,7 +568,6 @@
                     createdAt: Date.now()
                 };
 
-                // Saving to Realtime Database
                 await rtdb.ref("songs").push(newSong);
 
                 document.getElementById('add-song-form').reset();
@@ -668,17 +669,32 @@
             if(!song) return;
 
             currentSongIndex = songs.findIndex(s => s.id === id);
-            audioElement.src = song.url;
-            audioElement.play();
-            isPlaying = true;
+            
+            // HTTPS Safety check for Mobile Chrome audio
+            let playUrl = song.url;
+            if(playUrl.startsWith('http://')) {
+                playUrl = playUrl.replace('http://', 'https://');
+            }
+
+            audioElement.src = playUrl;
+            
+            // Audio Playback with Promise Error handling (Mobile browser policy fix)
+            const playPromise = audioElement.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    isPlaying = true;
+                    document.getElementById('play-pause-btn').innerHTML = `<i class="fa-solid fa-pause"></i>`;
+                }).catch(error => {
+                    console.error("Autoplay prevented or mobile stream blocked:", error);
+                    isPlaying = false;
+                    document.getElementById('play-pause-btn').innerHTML = `<i class="fa-solid fa-play ml-0.5"></i>`;
+                });
+            }
 
             document.getElementById('player-img').src = song.img;
             document.getElementById('player-title').innerText = song.title;
             document.getElementById('player-artist').innerText = song.artist;
             document.getElementById('download-btn').href = song.url;
-
-            const playBtn = document.getElementById('play-pause-btn');
-            playBtn.innerHTML = `<i class="fa-solid fa-pause"></i>`;
         }
 
         window.togglePlayPause = function() {
@@ -697,18 +713,21 @@
                 isPlaying = false;
                 playBtn.innerHTML = `<i class="fa-solid fa-play ml-0.5"></i>`;
             } else {
-                audioElement.play();
-                isPlaying = true;
-                playBtn.innerHTML = `<i class="fa-solid fa-pause"></i>`;
+                audioElement.play().then(() => {
+                    isPlaying = true;
+                    playBtn.innerHTML = `<i class="fa-solid fa-pause"></i>`;
+                }).catch(err => console.error(err));
             }
         }
 
         window.nextSong = function() {
+            if(songs.length === 0) return;
             currentSongIndex = (currentSongIndex + 1) % songs.length;
             playSong(songs[currentSongIndex].id);
         }
 
         window.prevSong = function() {
+            if(songs.length === 0) return;
             currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
             playSong(songs[currentSongIndex].id);
         }
@@ -766,4 +785,3 @@
     </script>
 </body>
 </html>
- 
