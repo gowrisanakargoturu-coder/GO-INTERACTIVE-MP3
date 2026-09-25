@@ -491,21 +491,20 @@
             modal.classList.remove('flex');
         }
 
+        // Updated Admin Credentials Handler
         window.handleAdminLogin = function(e) {
             e.preventDefault();
             const user = document.getElementById('login-admin-user').value.trim();
             const pass = document.getElementById('login-admin-pass').value.trim();
             
-            const savedUser = localStorage.getItem('go_interactive_admin_user') || 'admin';
-            const savedPass = localStorage.getItem('go_interactive_admin_pass') || 'admin123';
-
-            if(user === savedUser && pass === savedPass) {
+            // Updated directly to requested credentials
+            if(user === "GOWRISANKAR" && pass === "ADMIN@GOTURU@7799563932") {
                 isAdminLoggedIn = true;
                 closeAdminModal();
                 document.getElementById('admin-dashboard').classList.remove('hidden');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
-                alert('Access Denied: Invalid Credentials');
+                alert('Access Denied: Invalid Admin Credentials');
             }
         }
 
